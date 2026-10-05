@@ -1,0 +1,2 @@
+# Preserve the official byte-level checksum on Windows checkouts.
+backend/app/qa/tokenizer/*.tiktoken -text

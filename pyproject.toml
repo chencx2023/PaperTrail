@@ -1,0 +1,17 @@
+[project]
+name = "papertrail"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "paper-qa",
+    "pypdf>=6.19,<7",
+    "python-dotenv>=1.2.3",
+    "sqlalchemy>=2.0,<2.1",
+    "tiktoken>=0.7,<1",
+    "uvicorn>=0.53.0",
+]
+
+[tool.uv.sources]
+paper-qa = { git = "https://github.com/Future-House/paper-qa.git", rev = "57e89f7223b0960d5ee5ea048c69e3c47e088572" }

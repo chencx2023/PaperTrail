@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "purpose": "T01 language and insufficient-evidence probes; development cases, not a held-out quality benchmark",
+  "scope": "Current three cached local PDFs; exact file hashes saved per run",
+  "cases": [
+    {"id": "extraction_en", "pair": "extraction", "language": "en", "question": "According to the Mem0 paper, what inputs are used during memory extraction, and what does this phase output? Cite supporting evidence.", "review_points": ["conversation summary", "recent messages", "new message pair", "candidate salient memories"], "evidence_label": "Mem0.pdf pages 3-5 (upstream labels; PDF page unverified)"},
+    {"id": "extraction_zh", "pair": "extraction", "language": "zh", "question": "根据 Mem0 论文，记忆提取阶段使用哪些输入，输出是什么？请用中文回答并引用证据。", "review_points": ["对话摘要", "近期消息", "新消息对", "候选重要记忆"], "evidence_label": "Mem0.pdf pages 3-5 (upstream labels; PDF page unverified)"},
+    {"id": "update_en", "pair": "update", "language": "en", "question": "According to the Mem0 paper, how is each candidate fact compared with existing memories, and when are ADD, UPDATE, DELETE and NOOP selected? Cite supporting evidence.", "review_points": ["top-s semantic similarity retrieval", "ADD new fact", "UPDATE complementary information", "DELETE contradiction", "NOOP no change"], "evidence_label": "Mem0.pdf pages 4-5 and 20-22 (upstream labels; PDF page unverified)"},
+    {"id": "update_zh", "pair": "update", "language": "zh", "question": "根据 Mem0 论文，每条候选事实如何与已有记忆比较，分别在什么情况下选择 ADD、UPDATE、DELETE 和 NOOP？请用中文回答并引用证据。", "review_points": ["检索语义最相似的 top-s 记忆", "ADD 新事实", "UPDATE 补充信息", "DELETE 矛盾信息", "NOOP 无需修改"], "evidence_label": "Mem0.pdf pages 4-5 and 20-22 (upstream labels; PDF page unverified)"},
+    {"id": "missing_en", "pair": "missing", "language": "en", "question": "What exact accuracy does Mem0 report on the PaperTrail-T01-private-benchmark dataset? Answer only from the provided papers; if the evidence is unavailable, state that clearly.", "review_points": ["explicitly says requested evidence is unavailable", "does not substitute another dataset or invent a number"], "evidence_label": "Synthetic nonexistent dataset name; verify absence in the cached corpus before running"},
+    {"id": "missing_zh", "pair": "missing", "language": "zh", "question": "Mem0 在 PaperTrail-T01-private-benchmark 数据集上报告的准确率具体是多少？请用中文仅根据所提供论文回答；如果没有依据，请明确说明。", "review_points": ["明确说明缺少所问证据", "不替换成其他数据集或编造数字"], "evidence_label": "Synthetic nonexistent dataset name; verify absence in the cached corpus before running"}
+  ]
+}

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+      xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <title>ArXiv Query: search_query=ti:memory</title>
+  <id>http://arxiv.org/api/papertrail-normal</id>
+  <updated>2026-09-21T00:00:00Z</updated>
+  <link href="https://export.arxiv.org/api/query?search_query=ti:memory&amp;start=0&amp;max_results=3"
+        rel="self" type="application/atom+xml"/>
+  <opensearch:totalResults>3</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <opensearch:itemsPerPage>3</opensearch:itemsPerPage>
+
+  <entry>
+    <id>https://arxiv.org/abs/2401.00001</id>
+    <published>2024-01-01T10:00:00Z</published>
+    <updated>2024-01-01T10:00:00Z</updated>
+    <title>
+      Memory for Agents: First Version
+    </title>
+    <summary>
+      The first version studies agent memory.
+    </summary>
+    <author><name>Alice Example</name></author>
+    <author><name>Bob Example</name></author>
+    <arxiv:comment>10 pages</arxiv:comment>
+    <arxiv:journal_ref>Journal of Fixtures 1 (2024)</arxiv:journal_ref>
+    <arxiv:doi>10.1234/fixture.old</arxiv:doi>
+    <arxiv:license>https://creativecommons.org/licenses/by/4.0/</arxiv:license>
+    <link href="https://arxiv.org/abs/2401.00001v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2401.00001v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+
+  <entry>
+    <id>http://arxiv.org/abs/cs/9901001</id>
+    <published>1999-01-03T00:00:00Z</published>
+    <updated>1999-02-01T00:00:00Z</updated>
+    <title>Legacy Identifier Paper</title>
+    <summary>A paper using the legacy arXiv identifier format.</summary>
+    <author><name>Legacy Author</name></author>
+    <link href="http://arxiv.org/abs/cs/9901001v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/cs/9901001v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+
+  <entry>
+    <id>https://arxiv.org/abs/2401.00001</id>
+    <published>2024-01-01T10:00:00Z</published>
+    <updated>2024-03-03T12:30:00Z</updated>
+    <title>
+      Memory for Agents:
+      Revised Version
+    </title>
+    <summary>
+      The revised version studies persistent memory
+      for language-model agents.
+    </summary>
+    <author><name>Alice Example</name></author>
+    <author><name>Bob Example</name></author>
+    <author><name>Carol Example</name></author>
+    <arxiv:comment>14 pages, revised experiments</arxiv:comment>
+    <arxiv:journal_ref>Journal of Fixtures 2 (2024)</arxiv:journal_ref>
+    <arxiv:doi>10.1234/fixture.current</arxiv:doi>
+    <arxiv:license>https://creativecommons.org/licenses/by/4.0/</arxiv:license>
+    <link href="https://arxiv.org/abs/2401.00001v3" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2401.00001v3" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>
