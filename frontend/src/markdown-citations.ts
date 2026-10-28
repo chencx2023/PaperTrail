@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { answerDisplayParts, type AnswerDisplayPart } from './answer-display'
 import type { CitationPart } from './citations'
+import { prepareAnswerReading } from './answer-reading'
 
 type Group = Extract<AnswerDisplayPart, { kind: 'references' }> & { role?: 'origin' | 'paragraph' }
 type TreeNode = { type: string; value?: string; children?: TreeNode[]; url?: string; data?: { hChildren?: TreeNode[] }; position?: {start:{offset?:number};end:{offset?:number}} }
@@ -156,6 +157,7 @@ export function citationMarkdown(parts: CitationPart[], paragraphEnd = false) {
       }
     }
     walk(tree as unknown as TreeNode)
+    prepareAnswerReading(tree, groups)
   }
   return { markdown, groups, remarkCitations }
 }

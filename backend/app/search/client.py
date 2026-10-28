@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import ExitStack
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import time
@@ -130,6 +131,7 @@ class HttpxArxivTransport:
         *,
         http_transport: httpx.BaseTransport | None = None,
         request_gate: ArxivRequestGate | None = DEFAULT_ARXIV_REQUEST_GATE,
+        traffic_gate: ArxivRequestGate | None = None,
     ) -> None:
         self._client = httpx.Client(
             transport=http_transport,
@@ -137,12 +139,16 @@ class HttpxArxivTransport:
             limits=httpx.Limits(max_connections=1, max_keepalive_connections=0),
         )
         self._request_gate = request_gate
+        self._traffic_gate = traffic_gate
 
     def send(self, request: ArxivRequest) -> TransportResponse:
         if self._request_gate is None:
             return self._send_under_gate(request)
         try:
-            with self._request_gate.slot() as slot:
+            with ExitStack() as stack:
+                slot = stack.enter_context(self._request_gate.slot())
+                if self._traffic_gate is not None:
+                    stack.enter_context(self._traffic_gate.slot())
                 result = self._send_under_gate(request)
                 retry_after = response_cooldown_seconds(result, datetime.now(timezone.utc))
                 if retry_after is not None:

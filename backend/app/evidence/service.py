@@ -3,7 +3,7 @@
 import re
 
 from backend.app.pqa.adapter import AnswerBundle, PaperQAAdapter
-from backend.app.qa.context import CONTEXT_POLICY, LEGACY_CONTEXT_POLICY, evidence_excerpt
+from backend.app.qa.context import CONTEXT_POLICY, LEGACY_CONTEXT_POLICY, WINDOW_CONTEXT_POLICY, evidence_excerpt
 from backend.app.qa.scope import AnswerScope
 from backend.app.qa.service import AnswerExecution
 
@@ -72,7 +72,7 @@ def summarize_saved_context_coverage(bundle: AnswerBundle, frozen_members) -> di
     if not isinstance(prompts, dict):
         return result
     policy = prompts.get("context")
-    original_policy = policy in (CONTEXT_POLICY, LEGACY_CONTEXT_POLICY)
+    original_policy = policy in (CONTEXT_POLICY, LEGACY_CONTEXT_POLICY, WINDOW_CONTEXT_POLICY)
     if "context" in prompts and not original_policy and policy != {"version": "upstream_summary"}:
         return result
     # Optional background is explicitly quoted and is never counted as paper evidence.
@@ -90,7 +90,7 @@ def summarize_saved_context_coverage(bundle: AnswerBundle, frozen_members) -> di
         section_end = labels[index + 1].start() if index + 1 < len(labels) else len(context_body)
         section = context_body[labels[index].start():section_end]
         if original_policy:
-            expected = evidence_excerpt(context_id, evidence.original_text, evidence.summary)
+            expected = evidence_excerpt(context_id, evidence.original_text, evidence.summary, policy=policy)
             if re.fullmatch(re.escape(expected) + r"\nFrom [^\n]*\n*", section) is None:
                 return result
         elif section.startswith((f"{context_id}: Original passage (", f"{context_id}: Summary fallback (")):
@@ -208,7 +208,7 @@ def build_scoped_answer_bundle(
             }
             for document in scope.documents
         ],
-        "token_counts": session.token_counts if session is not None else {},
+        "token_counts": session.token_counts if session is not None else (execution.session_token_counts or {}),
         "run_config": {"coverage": "mapping_only"},
         "scope_observation": {
             "revision_id": scope.revision_id,
@@ -228,6 +228,8 @@ def build_scoped_answer_bundle(
                 for snapshot in execution.snapshots
             ],
             "final_context_coverage": execution.final_context_coverage,
+            "generation_records": list(execution.generation_records),
+            "provider_recovery_events": list(execution.recovery_events),
         },
     }
     session_data = {

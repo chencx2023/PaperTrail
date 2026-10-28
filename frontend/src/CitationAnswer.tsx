@@ -6,6 +6,7 @@ import rehypeKatex from 'rehype-katex'
 import { citationMarkdown } from './markdown-citations'
 import type { DocumentSource, Evidence } from './api'
 import { paperKey, paperCitationLabel, savedPaperSource } from './paper-sources'
+import { hasUnreadableSymbols } from './answer-reading'
 
 type Props = {
   rawAnswer: string
@@ -80,6 +81,7 @@ export function CitationAnswer({ rawAnswer, displayAnswer, citations, evidenceId
       components={{ a: ({ href, children, node: _node, ...props }) => href && groups.has(href)
         ? renderGroup(href) : <a {...props} href={href}>{children}</a> }}
     >{markdown}</Markdown></div>
+    {hasUnreadableSymbols(rawAnswer || displayAnswer) && <p className="section-note">提取文本含无法识别的符号（�）；公式与符号请核对引用 PDF，原始记录保留在技术详情中。</p>}
     {unverifiedOffsets > 0 && <p className="section-note">{unverifiedOffsets} 条引用位置无法核对；已保留原始文字，未生成猜测链接。</p>}
     {!hideDetails && <CitationDetails {...{ rawAnswer, displayAnswer, citations, evidenceIds, pathname, search }} />}
   </>

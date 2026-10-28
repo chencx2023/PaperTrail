@@ -20,6 +20,8 @@ export type SearchState = {
   candidates: Candidate[] | null
   query_plan?: import('./query-plan').MultiQueryPlan | null
   fusion?: SearchFusion | null
+  provenance?: { provider: 'arxiv' | 'openalex_arxiv'; fallback_used: boolean
+    primary_failure: { kind: string; message: string; http_attempts: number } | null } | null
   failure?: { kind: 'rate_limited' | 'cooldown' | 'network' | 'upstream'
     message: string; http_attempts: number } | null
 }

@@ -2,7 +2,34 @@
 
 import hashlib
 
-from paperqa.prompts import CANNOT_ANSWER_PHRASE, CITATION_KEY_CONSTRAINTS
+from paperqa.prompts import CANNOT_ANSWER_PHRASE, CITATION_KEY_CONSTRAINTS, env_reset_prompt
+
+
+EVIDENCE_PLAN_VERSION = "subject-aspect-evidence-v1"
+EVIDENCE_PLAN_PROMPT = env_reset_prompt + """
+
+Plan evidence collection from the user's question. For comparisons, cover each named subject
+and each requested aspect separately with focused gather_evidence questions. One broad query
+covering all subjects is only an overview; it does not establish that each requested part is
+supported. Search for each subject's actual method, definitions and necessary conditions.
+When asked how performance is judged, gather that subject's evaluation criteria specifically:
+what is measured, how partial progress is counted, and what complete success requires. A name
+or score in an abstract is not a definition. Ask a more specific follow-up when returned
+evidence describes a category without its decision rule. When a source also supplies reference
+artefacts or demonstration trajectories, collect evidence of their role versus the actual
+scoring criterion. Do not substitute data-authoring requirements for model-response judgement.
+Use the evidence previews to find remaining gaps. Additional calls may use newly found method
+or metric names. Stop when the requested aspects have direct support, or further calls only
+repeat evidence; state a specific unresolved gap rather than inventing a condition. Simple
+single-fact questions need only their direct evidence, not unnecessary repeated queries.
+Generate an answer after collecting the needed evidence. You may gather again if an answer
+fails validation. Do not repeatedly generate against an unchanged evidence pool.
+"""
+
+
+def agent_prompt_identity(template: str) -> dict[str, str]:
+    return {"version": EVIDENCE_PLAN_VERSION if template == EVIDENCE_PLAN_PROMPT else "custom_or_upstream",
+            "sha256": hashlib.sha256(template.encode()).hexdigest()}
 
 
 ANSWER_PROMPT_VERSION = "question-focused-answer-v5"

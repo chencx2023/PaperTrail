@@ -58,10 +58,21 @@ def _answer_path(data_root: Path, run_id: str, *, create_parent: bool) -> Path:
 
 def _safe_run_config(scope: AnswerScope, index_config_hash: str) -> dict:
     from backend.app.qa.context import context_policy_identity
-    from backend.app.qa.prompts import answer_prompt_identity
+    from backend.app.qa.prompts import answer_prompt_identity, agent_prompt_identity
 
     settings = scope.settings
-    return {
+    from backend.app.qa.grounded import grounded_policy_identity
+    if getattr(settings, "grounded_profile", "audited") in {"compact", "compact_repair"}:
+        from backend.app.qa.compact import compact_policy_identity
+        from functools import partial
+        grounded_policy_identity = partial(compact_policy_identity,
+            repair=settings.grounded_profile == "compact_repair",
+            insufficient_facts_compat=getattr(settings, "insufficient_facts_compat", False),
+            citation_scope_review=getattr(settings, "citation_scope_review", False))
+    deployments = (settings.llm_config or {}).get("model_list") or [{}]
+    answer_params = deployments[0].get("litellm_params", {})
+    extra_body = answer_params.get("extra_body") or {}
+    result = {
         "coverage": "selected_effective_fields; provider_configs_excluded",
         "paperqa_version": version("paper-qa"),
         "index_config_hash": index_config_hash,
@@ -75,6 +86,7 @@ def _safe_run_config(scope: AnswerScope, index_config_hash: str) -> dict:
             "type": settings.agent.agent_type,
             "tools": list(settings.agent.tool_names or []),
             "search_count": settings.agent.search_count,
+            "evidence_previews": settings.agent.agent_evidence_n,
             "max_timesteps": settings.agent.max_timesteps,
             "timeout_seconds": settings.agent.timeout,
         },
@@ -83,12 +95,26 @@ def _safe_run_config(scope: AnswerScope, index_config_hash: str) -> dict:
             "answer_max_sources": settings.answer.answer_max_sources,
             "answer_length": settings.answer.answer_length,
             "max_concurrent_requests": settings.answer.max_concurrent_requests,
+            "max_answer_attempts": settings.answer.max_answer_attempts,
+        },
+        "answer_model_parameters": {
+            **{key: answer_params[key] for key in ("model", "max_tokens", "timeout", "max_retries")
+               if key in answer_params},
+            "thinking_type": (extra_body.get("thinking") or {}).get("type"),
+            "reasoning_effort": extra_body.get("reasoning_effort"),
         },
         "prompts": {
             "qa": answer_prompt_identity(settings.prompts.qa),
             "context": context_policy_identity(settings.custom_context_serializer),
+            "generation": grounded_policy_identity() if getattr(settings, "grounded_answers", False)
+                          else {"version": "native"},
+            "agent": agent_prompt_identity(settings.agent.agent_prompt),
         },
     }
+    if getattr(settings,"grounded_profile","audited") == "compact_repair":
+        from backend.app.qa.recovery import RECOVERY_POLICY
+        result["agent"]["provider_recovery"] = dict(RECOVERY_POLICY)
+    return result
 
 
 def stage_answer_run(
@@ -128,8 +154,8 @@ def stage_answer_run(
     saved_bundle = bundle.model_copy(update={
         "run_config": _safe_run_config(scope, index_config_hash),
     })
-    from backend.app.qa.context import original_context_serializer, saved_selection_report
-    if scope.settings.custom_context_serializer is original_context_serializer:
+    from backend.app.qa.context import original_context_serializer, window_context_serializer, repair_context_serializer, saved_selection_report
+    if scope.settings.custom_context_serializer in (original_context_serializer, window_context_serializer, repair_context_serializer):
         saved_bundle.run_config['context_selection'] = saved_selection_report(
             saved_bundle, scope.settings.answer.evidence_relevance_score_cutoff)
     body = saved_bundle.model_dump_json(indent=2).encode("utf-8")

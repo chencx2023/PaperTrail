@@ -32,6 +32,7 @@ def _run_one_job(
     worker_id: str,
     data_root: Path,
     search_client: ArxivClient | None = None,
+    search_fallback=None,
     import_client: httpx.Client | None = None,
     index_settings=None,
     index_embedding_model=None,
@@ -60,6 +61,7 @@ def _run_one_job(
             search,
             data_root=data_root,
             client=search_client,
+            fallback=search_fallback,
             lease_seconds=lease_seconds,
             heartbeat_interval_seconds=heartbeat_interval_seconds,
         )
@@ -119,6 +121,7 @@ def _run_one_job(
 
 def run_one_job(engine: Engine, *, worker_id: str, data_root: Path,
     search_client: ArxivClient | None = None, import_client: httpx.Client | None = None,
+    search_fallback=None,
     index_settings=None, index_embedding_model=None, answer_settings=None, answer_executor=None,
     lease_seconds: float = 30.0, heartbeat_interval_seconds: float = 5.0) -> ExecutedJob | None:
     require_positive_lease(lease_seconds)
@@ -127,6 +130,7 @@ def run_one_job(engine: Engine, *, worker_id: str, data_root: Path,
     try:
         return _run_one_job(engine, worker_id=worker_id, data_root=data_root,
             search_client=search_client, import_client=import_client,
+            search_fallback=search_fallback,
             index_settings=index_settings, index_embedding_model=index_embedding_model,
             answer_settings=answer_settings, answer_executor=answer_executor,
             lease_seconds=lease_seconds, heartbeat_interval_seconds=heartbeat_interval_seconds)

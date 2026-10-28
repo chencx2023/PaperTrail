@@ -30,7 +30,14 @@ class ExecutedIndex:
 def _runtime_settings() -> Settings:
     from scripts.check_models import load_config
     from scripts.model_config import build_settings
-    return build_settings(load_config("all"))
+    config = dict(load_config("all"))
+    # Accepted Flash profile; explicit operator overrides remain authoritative.
+    config.setdefault("PAPERTRAIL_GROUNDED_ANSWERS", "true")
+    config.setdefault("PAPERTRAIL_GROUNDED_PROFILE", "compact")
+    config.setdefault("PAPERTRAIL_QA_REASONING", "high")
+    config.setdefault("PAPERTRAIL_ANSWER_MODEL", config["DEEPSEEK_MODEL"])
+    config.setdefault("PAPERTRAIL_AGENT_TIMEOUT", "500")
+    return build_settings(config)
 
 
 def execute_claimed_index(

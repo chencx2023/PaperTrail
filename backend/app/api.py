@@ -814,6 +814,7 @@ def create_app(database_path: Path, data_root: Path, *, public_access=None) -> F
             "candidates": None,
             "query_plan": search.query_plan,
             "fusion": None,
+            "provenance": None,
             "failure": None,
         }
         if job.status != "succeeded":
@@ -859,7 +860,8 @@ def create_app(database_path: Path, data_root: Path, *, public_access=None) -> F
         if (
             not replayed.candidates_match
             or replayed.source_run_id != f"search-{attempt.id}"
-            or (replayed.fusion["plan"] if replayed.fusion else None) != search.query_plan
+            or (replayed.provenance["original_plan"] if replayed.provenance else
+                replayed.fusion["plan"] if replayed.fusion else None) != search.query_plan
         ):
             raise ApiError(
                 "INVALID_SNAPSHOT", "Saved search result is unavailable.", 409, search_id
@@ -867,6 +869,7 @@ def create_app(database_path: Path, data_root: Path, *, public_access=None) -> F
         result["snapshot_sha256"] = replayed.snapshot_sha256
         result["candidates"] = [asdict(item) for item in replayed.feed.candidates]
         result["fusion"] = replayed.fusion
+        result["provenance"] = replayed.provenance
         return result
 
     @app.get("/api/searches/{search_id}/screening")

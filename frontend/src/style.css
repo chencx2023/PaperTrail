@@ -213,6 +213,14 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); f
 .markdown-answer th { background: var(--soft); }
 .markdown-answer .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 10px 0; }
 .markdown-answer .katex { font-size: 1.1em; }
+.answer-scope-note { color: var(--muted); font-size: 14px; margin-right: 8px; }
+.answer-reading-fold { margin: 12px 0 20px; }
+.answer-reading-fold > summary { min-height: 44px; padding: 10px 0; color: var(--accent); font-size: 14px; font-weight: 600; }
+.answer-reading-fold[open] > summary { margin-bottom: 12px; }
+.answer-rule-group { margin: 20px 0 28px; }
+.answer-rule-group > p { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+.answer-rule-group blockquote { margin: 10px 0; }
+.answer-rule-group blockquote p { white-space: pre-line; }
 .citation-group { font-size: .76em; line-height: 0; vertical-align: super; }
 .citation-group .citation-link + .citation-link { margin-left: 2px; }
 .citation-link { white-space: nowrap; font-variant-numeric: tabular-nums; padding: 3px 2px; border-radius: 3px; text-decoration-thickness: 1.5px; scroll-margin-top: 36px; }

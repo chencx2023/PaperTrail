@@ -20,7 +20,8 @@ from backend.app.db import open_database
 from backend.app.jobs.dispatcher import run_one_job
 from backend.app.jobs.process_lock import worker_singleton
 from backend.app.research.workflow import recover_orphan_research_attempts
-from backend.app.search.client import ArxivClient
+from backend.app.search.client import ArxivClient, HttpxArxivTransport
+from backend.app.search.fallback import ARXIV_TRAFFIC_GATE, OpenAlexArxivFallback
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -59,7 +60,10 @@ def main(
             return 2
 
         engine = open_database(args.database)
-        resolved_client = search_client or ArxivClient()
+        resolved_client = search_client or ArxivClient(
+            transport=HttpxArxivTransport(traffic_gate=ARXIV_TRAFFIC_GATE))
+        # Injected clients stay fully offline; the ordinary live worker enables fallback.
+        search_fallback = OpenAlexArxivFallback() if search_client is None else None
         resolved_import_client = import_client or httpx.Client()
         try:
             while True:
@@ -70,6 +74,7 @@ def main(
                         worker_id=args.worker_id,
                         data_root=args.data_root,
                         search_client=resolved_client,
+                        search_fallback=search_fallback,
                         import_client=resolved_import_client,
                     )
                 except Exception as error:
@@ -93,6 +98,7 @@ def main(
             engine.dispose()
             if search_client is None:
                 resolved_client.transport.close()
+                search_fallback.close()
             if import_client is None:
                 resolved_import_client.close()
 

@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import type { DocumentSource, Evidence, PdfPageLookup } from './api'
 import { evidenceHref } from './citations'
 import { paperGroups, paperCitationLabel, savedPaperSource } from './paper-sources'
+import { hasUnreadableSymbols, readingText } from './answer-reading'
 
 type Props = {
   answerRunId: string
@@ -22,15 +23,16 @@ function pageRange(start: number, end: number) {
   return start === end ? `${start}` : `${start}–${end}`
 }
 
-function OriginalPassage({ text, expanded = false }: { text: string | null; expanded?: boolean }) {
+function OriginalPassage({ text }: { text: string | null }) {
   if (!text) return <p className="section-note">没有保存实际原文。</p>
+  text = readingText(text)
   const characters = Array.from(text)
   if (characters.length <= 600) return <p className="original-preview">{text}</p>
   const prefix = characters.slice(0, 600).join('')
   const boundary = prefix.search(/\s+\S*$/)
   const preview = boundary > prefix.length - 40 ? prefix.slice(0, boundary) : prefix
   return <div className="original-reading">
-    <details className="original-full" open={expanded || undefined}>
+    <details className="original-full">
       <summary><span className="expand-label">展开完整片段</span>
         <span className="collapse-label">收起完整片段</span></summary>
       <div className="original-passage">{text.split(/\n\s*\n/).map((paragraph, index) =>
@@ -63,7 +65,8 @@ function EvidenceCard({ answerRunId, item, number, selected = false, pageLookup,
     {!inline && <p className="paper-title">{title || item.upstream_dockey}</p>}
     {inline && title && <p className="original-source-title">{title}</p>}
     <p className="section-note">固定版本 · {item.upstream_dockey}</p>
-    {inline && <div className="source-section"><OriginalPassage text={item.original_text} expanded={selected} /></div>}
+    {inline && <div className="source-section"><OriginalPassage text={item.original_text} /></div>}
+    {hasUnreadableSymbols(item.original_text || '') && <p className="section-note">提取文本含无法识别的符号（�）；公式与符号请核对 PDF。</p>}
     <p className="evidence-location" aria-live={selected ? 'polite' : undefined}>{pageText}</p>
     <p className="pdf-link-row">{item.document_id
       ? <><a href={uniqueMatch ? `${pdfUrl}#page=${uniqueMatch.start_page}` : pdfUrl}
@@ -79,9 +82,9 @@ function EvidenceCard({ answerRunId, item, number, selected = false, pageLookup,
           第 {index + 1} 处：物理第 {pageRange(match.start_page, match.end_page)} 页</a>
       </span>)}
     </p>}
-    {inline ? <details className="saved-summary"><summary>保存的证据摘要</summary><p className="evidence-summary">{item.summary || '没有保存摘要'}</p></details> : <><div className="summary-section"><h5>模型摘要</h5>
+    {inline ? <details className="saved-summary"><summary>保存的证据摘要</summary><p className="evidence-summary">{readingText(item.summary || '没有保存摘要')}</p></details> : <><div className="summary-section"><h5>模型摘要</h5>
     <p className="section-note">已保存的自动整理内容，请结合原文核查。</p>
-    <p className="evidence-summary">{item.summary || '没有保存摘要'}</p></div>
+    <p className="evidence-summary">{readingText(item.summary || '没有保存摘要')}</p></div>
     <div className="source-section"><h5>论文原文</h5>
     <p className="section-note">完整展开的是本次保存的文本块；表格、图注和前后文请结合 PDF 阅读。</p>
     <OriginalPassage text={item.original_text} />
@@ -123,7 +126,7 @@ export function EvidencePanel({ answerRunId, evidence, selectedEvidenceId, citat
           data-evidence-id={fragment.evidence_id} href={evidenceHref(pathname, search, fragment.evidence_id)}
           aria-current={fragment.evidence_id === selectedEvidenceId ? 'true' : undefined} aria-label={`查看 ${title} 的原文片段 ${index + 1}`}>
           <span className="source-preview-meta">原文 {index + 1}<span>展开原文</span></span>
-          <span className="source-preview-text">{fragment.original_text ? Array.from(fragment.original_text).slice(0, 220).join('') + (Array.from(fragment.original_text).length > 220 ? '…' : '') : '原文未保存'}</span>
+          <span className="source-preview-text">{fragment.original_text ? Array.from(readingText(fragment.original_text)).slice(0, 220).join('') + (Array.from(readingText(fragment.original_text)).length > 220 ? '…' : '') : '原文未保存'}</span>
         </a>)}</td></tr>
         {current && <tr className="source-expanded-row"><td colSpan={2}><EvidenceCard key={current.evidence_id} answerRunId={answerRunId} item={current} title={title} inline selected pageLookup={pageLookup} returnCitationId={returnCitationId} /></td></tr>}
         </Fragment>
@@ -135,7 +138,7 @@ export function EvidencePanel({ answerRunId, evidence, selectedEvidenceId, citat
       <p className="section-note">这些片段未在正文形成可定位引用。</p>
       {otherEvidence.map((item, index) => <details key={item.evidence_id} className="other-fragment">
         <summary><span>片段 {index + 1} · {documentTitles[item.document_id || ''] || item.upstream_dockey}</span>
-          <span className="fragment-preview">{item.summary || '没有保存摘要'}</span></summary>
+          <span className="fragment-preview">{readingText(item.summary || '没有保存摘要')}</span></summary>
         <EvidenceCard answerRunId={answerRunId} item={item} title={documentTitles[item.document_id || '']} />
       </details>)}
     </details>}

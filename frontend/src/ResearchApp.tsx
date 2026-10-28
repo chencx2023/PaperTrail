@@ -25,6 +25,14 @@ function routeFromUrl(): Route {
   return { research: p.get('research') || '', search: p.get('search') || '', collection: p.get('collection') || '', revision: p.get('revision') || '', answer: p.get('answer') || '', evidence: p.get('evidence') || '', view: p.get('view') === 'qa' || !p.has('view') && (p.has('answer') || p.has('revision')) ? 'qa' : 'search' }
 }
 
+function showCitation(id: string, block: ScrollLogicalPosition = 'start') {
+  const target = document.getElementById(id)
+  for (let parent = target?.parentElement; parent; parent = parent.parentElement) {
+    if (parent instanceof HTMLDetailsElement && parent.classList.contains('answer-reading-fold')) parent.open = true
+  }
+  target?.scrollIntoView({ block }); target?.focus({ preventScroll: true })
+}
+
 export function ResearchApp() {
   const { runtime, disconnected, ready: workerReady } = useRuntime()
   const [route, setRoute] = useState<Route>(routeFromUrl)
@@ -181,7 +189,7 @@ export function ResearchApp() {
   }, [evidenceOpen, locationKey, hasPdf])
   useEffect(() => {
     if (!route.evidence || !answer?.answer || route.view !== 'qa') return
-    const frame = requestAnimationFrame(() => { const target = document.getElementById(location.hash === '#evidence' ? 'evidence' : returnId); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }) })
+    const frame = requestAnimationFrame(() => showCitation(location.hash === '#evidence' ? 'evidence' : returnId))
     return () => cancelAnimationFrame(frame)
   }, [route.evidence, answer?.answer_run_id, !!answer?.answer, route.view, returnId])
   const toggleHistory = (open: boolean) => { setHistoryView(open); if (open) setNavExpanded(true); history.replaceState(null, '', historyHref(location.href, open)) }
@@ -198,7 +206,7 @@ export function ResearchApp() {
       if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
       const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('a[data-evidence-id], a.return-citation')
       if (!link) return
-      if (link.classList.contains('return-citation')) { event.preventDefault(); history.pushState(null, '', link.href); setEvidenceOpen(false); requestAnimationFrame(() => { const target = document.getElementById(link.hash.slice(1)); target?.scrollIntoView({ block: 'center' }); target?.focus({ preventScroll: true }) }); return }
+      if (link.classList.contains('return-citation')) { event.preventDefault(); history.pushState(null, '', link.href); setEvidenceOpen(false); requestAnimationFrame(() => showCitation(link.hash.slice(1), 'center')); return }
       const id = link.dataset.evidenceId
       if (!id || !numbers.has(id)) return
       const origin = link.classList.contains('citation-link') ? link.dataset.citationId || link.id :
@@ -213,6 +221,7 @@ export function ResearchApp() {
       {route.view === 'search' ? <>
         <div className={`intro research-intro${search ? ' has-search' : ''}`}><div><h1 tabIndex={-1}>{search?.question || '从问题出发，读懂论文。'}</h1>{!search && <p>检索文献，让回答有据可循。</p>}</div><RuntimeNotice runtime={runtime} disconnected={disconnected} compact /></div>
         <SearchFailureNotice search={search} />
+        {search?.provenance?.fallback_used && <p className="section-note" role="status">arXiv 搜索暂不可用，已使用 OpenAlex 备用检索。以下论文的摘要和固定版本已从 arXiv 原文页核实；本次使用单路关键词搜索。</p>}
         <details className="search-composer" open={!search || search.status === 'failed' || search.status === 'interrupted'} key={`composer-${search?.search_id}`}>
           <summary><strong>{search ? '检索设置' : '开始你的研究'}</strong><span>{search ? search.query_text : '输入问题与英文检索词'}</span>{search && <span className="composer-edit">查看 / 修改</span>}</summary>
           <div className="search-form"><div className="form-grid"><label>研究问题（中文）<textarea value={question} onChange={e => setQuestion(e.target.value)} rows={2} placeholder="例如：智能体长期记忆如何评估？" /></label><label>arXiv 检索词（英文）<input value={queryText} onChange={e => setQueryText(e.target.value)} placeholder="LLM agent long-term memory evaluation" /></label></div>

@@ -34,6 +34,22 @@ def read_search_failure(run_dir: Path, *, expected_run_id: str,
         if (root.name != expected_run_id or metadata["run_id"] != expected_run_id
                 or metadata["status"] != "failed"):
             raise InvalidSearchSnapshot("Failed run identity changed.")
+        if request.get("mode") == "resilient_search":
+            from backend.app.search.fallback import _verified_wrapper
+            if request.get("query_text") != build_arxiv_query(query_text).normalized_query_text or request.get("plan") != query_plan:
+                raise InvalidSearchSnapshot("Failed fallback search request changed.")
+            manifest, _ = _verified_wrapper(root, metadata, request)
+            primary = read_search_failure(root.parent / f"{root.name}-arxiv",
+                expected_run_id=f"{root.name}-arxiv", query_text=query_text, query_plan=query_plan)
+            if primary is None or manifest["provider"] != "openalex_arxiv":
+                raise InvalidSearchSnapshot("Failed fallback has no matching primary failure.")
+            child = root.parent / manifest["selected_run_id"]
+            fallback_run = _read_json_object(child / "run.json", "fallback failure")
+            body, _ = _verified_snapshot_bytes(child, fallback_run)
+            fallback = json.loads(body)
+            return {"kind": "upstream", "message": "arXiv 搜索与备用检索均未完成。"
+                + str(fallback_run["error"]["message"]), "http_attempts": primary["http_attempts"],
+                "fallback_requests": fallback["openalex_requests"], "page_requests": fallback["page_requests"]}
         if query_plan is None:
             sources = [_failed_source(root, expected_run_id,
                                       build_arxiv_query(query_text).search_query)]

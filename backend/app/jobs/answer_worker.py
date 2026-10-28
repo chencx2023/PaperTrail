@@ -30,6 +30,15 @@ class ExecutedAnswer:
     artifact_ref: str | None
 
 
+def _answer_deadline_seconds(settings: Settings) -> float:
+    margin = 120
+    if getattr(settings, "grounded_answers", False) and getattr(settings, "grounded_profile", None) == "compact":
+        params = settings.llm_config["model_list"][0]["litellm_params"]
+        # Native timeout can be followed by one final two-stage generation.
+        margin = max(margin, 2 * float(params["timeout"]) + 15)
+    return settings.agent.timeout + margin
+
+
 def execute_claimed_answer(
     engine: Engine, claimed: ClaimedJob, *, data_root: Path,
     settings: Settings | None = None, answer_executor=None,
@@ -54,7 +63,7 @@ def execute_claimed_answer(
                 engine, request.revision_id, request.index_artifact_id,
                 data_root=data_root, settings=configured,
             )
-            async with asyncio.timeout(configured.agent.timeout + 120):
+            async with asyncio.timeout(_answer_deadline_seconds(configured)):
                 execution = await executor(scope, request.question)
             return scope, execution
 

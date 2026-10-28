@@ -26,6 +26,88 @@ class AgentModelConfigTest(unittest.TestCase):
 
 
 class LanguageModelRequestTest(unittest.IsolatedAsyncioTestCase):
+    async def test_compact_candidate_sends_flash_for_every_language_role(self):
+        import httpx
+        from aviary.core import Message
+        from openai import AsyncOpenAI
+        from scripts.model_config import build_settings
+        config = {"DEEPSEEK_MODEL":"deepseek-flash","DEEPSEEK_BASE_URL":"https://api.deepseek.com",
+            "DEEPSEEK_API_KEY":"offline-test-key","EMBEDDING_MODEL":"text-embedding-v4",
+            "EMBEDDING_BASE_URL":"https://example.invalid","EMBEDDING_API_KEY":"offline-test-key",
+            "EMBEDDING_DIMENSIONS":1024,"EMBEDDING_BATCH_SIZE":10,
+            "PAPERTRAIL_GROUNDED_ANSWERS":"true","PAPERTRAIL_GROUNDED_PROFILE":"compact",
+            "PAPERTRAIL_QA_REASONING":"high","PAPERTRAIL_ANSWER_MODEL":"deepseek-flash"}
+        settings=build_settings(config)
+        self.assertEqual(settings.grounded_profile,"compact")
+        self.assertEqual(settings.agent.timeout,500)
+        with self.assertRaises(ValueError):
+            build_settings({**config,"PAPERTRAIL_GROUNDED_PROFILE":"unknown"})
+        requests=[]
+        def handle(request):
+            body=json.loads(request.content);requests.append(body)
+            self.assertEqual(body["model"],"deepseek-flash")
+            self.assertEqual(body["thinking"]["type"],"enabled" if len(requests)==1 else "disabled")
+            self.assertEqual(body["max_tokens"],24000 if len(requests)==1 else 1800)
+            return httpx.Response(200,json={"id":"offline","object":"chat.completion","created":1,
+                "model":body["model"],"choices":[{"index":0,"message":{"role":"assistant","content":"{}"},"finish_reason":"stop"}],
+                "usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as http:
+            async with AsyncOpenAI(api_key="offline-test-key",base_url=config["DEEPSEEK_BASE_URL"],http_client=http,max_retries=0) as client:
+                await settings.get_llm().call_single(messages=[Message(content="json")],client=client,response_format={"type":"json_object"})
+                await settings.get_summary_llm().call_single(messages=[Message(content="offline")],client=client)
+                await settings.get_agent_llm().get_router().acompletion(model=settings.agent.agent_llm,
+                    client=client,messages=[{"role":"user","content":"offline"}])
+        self.assertEqual(len(requests),3)
+
+    async def test_candidate_answer_model_changes_only_generation_role_and_native_off_ignores_it(self):
+        import httpx
+        from aviary.core import Message
+        from openai import AsyncOpenAI
+        from scripts.model_config import build_settings
+        config = {"DEEPSEEK_MODEL": "deepseek-flash", "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
+            "DEEPSEEK_API_KEY": "offline-test-key", "EMBEDDING_MODEL": "text-embedding-v4",
+            "EMBEDDING_BASE_URL": "https://example.invalid", "EMBEDDING_API_KEY": "offline-test-key",
+            "EMBEDDING_DIMENSIONS": 1024, "EMBEDDING_BATCH_SIZE": 10,
+            "PAPERTRAIL_GROUNDED_ANSWERS": "true", "PAPERTRAIL_QA_REASONING": "high",
+            "PAPERTRAIL_ANSWER_MODEL": "deepseek-v4-pro", "PAPERTRAIL_AGENT_TIMEOUT": "900"}
+        settings = build_settings(config)
+        self.assertEqual(settings.llm, "openai/deepseek-v4-pro")
+        self.assertEqual(settings.summary_llm, "openai/deepseek-flash")
+        self.assertEqual(settings.agent.agent_llm, "openai/deepseek-flash")
+        self.assertEqual(settings.agent.timeout, 900)
+        self.assertEqual(build_settings({**config, "PAPERTRAIL_GROUNDED_ANSWERS": "false"}).llm,
+                         "openai/deepseek-flash")
+        self.assertEqual(build_settings({**config, "PAPERTRAIL_GROUNDED_ANSWERS": "false"}).agent.timeout, 500)
+        for value in ("-1", "nan", "inf"):
+            with self.subTest(timeout=value), self.assertRaises(ValueError):
+                build_settings({**config, "PAPERTRAIL_AGENT_TIMEOUT": value})
+        requests = []
+        def handle(request):
+            body = json.loads(request.content)
+            requests.append(body)
+            self.assertEqual(body["model"], "deepseek-v4-pro" if len(requests) == 1 else "deepseek-flash")
+            self.assertEqual(body["thinking"]["type"], "enabled" if len(requests) == 1 else "disabled")
+            if len(requests) == 1:
+                self.assertEqual(body["reasoning_effort"], "high")
+                self.assertEqual(body["max_tokens"], 24000)
+                self.assertEqual(body["response_format"], {"type": "json_object"})
+            else:
+                self.assertNotIn("reasoning_effort", body)
+                self.assertEqual(body["max_tokens"], 1800)
+            return httpx.Response(200, json={"id": "offline", "object": "chat.completion", "created": 1,
+                "model": body["model"], "choices": [{"index": 0,
+                    "message": {"role": "assistant", "content": "offline"}, "finish_reason": "stop"}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2}})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as http:
+            async with AsyncOpenAI(api_key="offline-test-key", base_url=config["DEEPSEEK_BASE_URL"],
+                                   http_client=http, max_retries=0) as client:
+                for index, model in enumerate((settings.get_llm(), settings.get_summary_llm())):
+                    options = {"response_format": {"type": "json_object"}} if index == 0 else {}
+                    await model.call_single(messages=[Message(content="probe")], client=client, **options)
+                await settings.get_agent_llm().get_router().acompletion(model=settings.agent.agent_llm,
+                    client=client, messages=[{"role": "user", "content": "probe"}])
+        self.assertEqual(len(requests), 3)
+
     async def test_all_language_roles_send_configured_credentials_and_thinking_mode(self):
         import httpx
         from aviary.core import Message

@@ -333,6 +333,7 @@ def execute_claimed_search(
     *,
     data_root: Path,
     client: ArxivClient | None = None,
+    fallback=None,
     lease_seconds: float = 30.0,
     heartbeat_interval_seconds: float = 5.0,
 ) -> ExecutedSearch:
@@ -358,7 +359,14 @@ def execute_claimed_search(
             lease_seconds=lease_seconds,
             heartbeat_interval_seconds=heartbeat_interval_seconds,
         ):
-            if claimed.query_plan is not None:
+            if fallback is not None:
+                from backend.app.search.fallback import run_resilient_search
+                run = run_resilient_search(claimed.query_text, client=client or ArxivClient(),
+                    fallback=fallback, output_root=Path(data_root) / "runs",
+                    run_id=f"search-{claimed.attempt_id}",
+                    plan=plan_from_data(claimed.query_plan) if claimed.query_plan else None,
+                    generation=claimed.plan_source)
+            elif claimed.query_plan is not None:
                 multi = plan_from_data(claimed.query_plan)
                 if multi.baseline_query_text != current_plan.normalized_query_text:
                     raise QueryContractMismatch("Saved multi-query baseline differs from the current query.")

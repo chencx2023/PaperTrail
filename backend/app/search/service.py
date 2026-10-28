@@ -68,6 +68,7 @@ class ReplayedSearchRun:
     current_parser_version: int
     snapshot_sha256: str
     fusion: dict[str, Any] | None = None
+    provenance: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -277,6 +278,10 @@ def publish_search_cache(run_dir: Path) -> None:
     """Make a successful worker run cacheable after its Job commit succeeds."""
 
     request_data = _read_json_object(run_dir / "request.json", "saved request")
+    if request_data.get("mode") in ("resilient_search", "openalex_arxiv"):
+        from backend.app.search.fallback import publish_fallback_cache
+        publish_fallback_cache(run_dir)
+        return
     if request_data.get("mode") == "multi_query":
         from backend.app.search.multi_query import publish_multi_cache
         publish_multi_cache(run_dir)
@@ -314,6 +319,9 @@ def replay_search_run(run_dir: Path) -> ReplayedSearchRun:
         source_run_dir / "request.json",
         "saved request",
     )
+    if request_data.get("mode") in ("resilient_search", "openalex_arxiv"):
+        from backend.app.search.fallback import replay_fallback_search
+        return replay_fallback_search(source_run_dir)
     if request_data.get("mode") == "multi_query":
         from backend.app.search.multi_query import replay_multi_search
         return replay_multi_search(source_run_dir)

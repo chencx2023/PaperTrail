@@ -278,7 +278,8 @@ test('a long original has a short preview while the unmodified complete passage 
   assert.ok(preview.length < original.length / 2)
   assert.doesNotMatch(preview, /Saved ending/)
   assert.ok(html.includes(original))
-  assert.match(html, /<details class="original-full" open=""/)
+  assert.match(html, /<details class="original-full">/)
+  assert.doesNotMatch(html, /<details class="original-full"[^>]* open/)
   assert.equal(original, before)
 })
 
